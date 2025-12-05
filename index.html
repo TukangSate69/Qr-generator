@@ -3,115 +3,145 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>QR from URL — Simple Generator</title>
+  <title>QR Generator — 1000px PNG</title>
   <style>
-    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0}
-    body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f6f8fa}
-    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 22px rgba(10,10,10,.08);width:360px}
-    h1{font-size:18px;margin:0 0 12px}
-    form{display:grid;gap:10px}
-    input[type="url"]{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
-    .row{display:flex;gap:8px}
-    button{flex:1;padding:10px;border-radius:8px;border:0;background:#2563eb;color:#fff;font-weight:600;cursor:pointer}
-    button.secondary{background:#6b7280}
-    #qrcode-wrap{display:flex;justify-content:center;padding:12px 0}
-    canvas{background:#fff;border-radius:8px}
-    .small{font-size:13px;color:#6b7280;text-align:center}
-    footer{margin-top:12px;text-align:center;font-size:12px;color:#9ca3af}
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f3f4f6;margin:0;padding:20px}
+    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.08);width:760px;max-width:100%}
+    h1{font-size:20px;margin:0 0 12px}
+    form{display:grid;grid-template-columns:1fr 140px;gap:10px;align-items:center}
+    input[type="url"]{width:100%;padding:12px;border-radius:8px;border:1px solid #e5e7eb;font-size:15px}
+    select{padding:10px;border-radius:8px;border:1px solid #e5e7eb}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    button{padding:10px 14px;border-radius:8px;border:0;background:#111827;color:#fff;font-weight:600;cursor:pointer}
+    button.ghost{background:#e5e7eb;color:#111827}
+    #qrcode-wrap{display:flex;justify-content:center;align-items:center;margin-top:16px}
+    canvas{background:#fff;border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.06);max-width:100%;height:auto}
+    .note{font-size:13px;color:#6b7280;margin-top:10px}
+    footer{margin-top:14px;text-align:center;font-size:12px;color:#9ca3af}
   </style>
 </head>
 <body>
   <main class="card" role="main">
-    <h1>Generator QR — masukkan URL</h1>
-    <form id="form">
-      <input id="url" type="url" placeholder="https://example.com" required />
-      <div class="row">
-        <button id="generate" type="submit">Generate QR</button>
-        <button id="clear" type="button" class="secondary">Clear</button>
-      </div>
+    <h1>QR Generator — PNG 1000px</h1>
+
+    <form id="form" onsubmit="return false;">
+      <input id="url" type="url" placeholder="Masukkan URL, mis. https://example.com" required />
+      <button id="generate">Generate</button>
     </form>
 
+    <div class="controls">
+      <button id="download" class="ghost" disabled>Download PNG (1000px)</button>
+      <button id="open" class="ghost" disabled>Open Image</button>
+      <button id="clear" class="ghost">Clear</button>
+    </div>
+
     <div id="qrcode-wrap" aria-live="polite">
-      <!-- canvas will be injected here -->
-      <canvas id="qr-canvas" width=\"1000\" height=\"1000\" style="display:none"></canvas>
+      <canvas id="qr-canvas" width="1000" height="1000" style="display:none"></canvas>
     </div>
 
-    <div class="row" style="margin-top:8px;">
-      <button id="download" type="button" class="secondary" disabled>Download PNG</button>
-      <button id="open" type="button" disabled>Open in new tab</button>
-    </div>
-
-    <p class="small">Catatan: QR dibuat client-side. Tidak ada data yang dikirim ke server.</p>
-    <footer>Butuh fitur lain? Contoh: ukuran, warna, atau file SVG — bilang saja.</footer>
+    <p class="note">Semua proses berjalan di browser (client-side). File yang di-download adalah PNG berukuran 1000×1000 piksel.</p>
+    <footer>Butuh versi SVG atau opsi warna? Beri tahu saya.</footer>
   </main>
 
-  <!-- QRious is a tiny library that draws QR codes to a canvas (MIT). Using CDN for simplicity. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" integrity="sha512-+GQ7s6wS6l7pFYKQxj5xF8d5r6lEo3e+qkXK1ZxYp2+5q8z1JQ0Oq8mG6p1f4Yc1FJ9a6Y2d+3y9h2KJ8JvPQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- QRious (minimal) dari CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" integrity="sha512-+GQ7s6wS6l7pFYKQxj5xF8d5r6lEo3e+qkXK1ZxYp2+5q8z1JQ0Oq8mG6p1f4Yc1FJ9a6Y2d+3y9h2KJ8JvPQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
   <script>
+    // Elements
     const form = document.getElementById('form');
     const urlInput = document.getElementById('url');
     const canvas = document.getElementById('qr-canvas');
-    const wrap = document.getElementById('qrcode-wrap');
     const downloadBtn = document.getElementById('download');
     const openBtn = document.getElementById('open');
     const clearBtn = document.getElementById('clear');
 
-    // create QRious instance that draws to the canvas
+    // QRious instance set to 1000px
     const qr = new QRious({
       element: canvas,
       size: 1000,
       value: ''
     });
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const value = urlInput.value.trim();
-      if (!value) return;
+    // Helper: simple URL validation
+    function isValidUrl(u) {
+      try {
+        const url = new URL(u);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch (e) {
+        return false;
+      }
+    }
 
-      // set QR value and show canvas
-      qr.set({ value });
+    // Generate QR
+    async function generate() {
+      const val = urlInput.value.trim();
+      if (!val) return alert('Masukkan URL terlebih dahulu.');
+      if (!isValidUrl(val)) return alert('URL tidak valid. Pastikan diawali http:// atau https://');
+
+      // set value and force redraw
+      qr.set({ value: val });
       canvas.style.display = 'block';
-
-      // replace wrapper content with the canvas (keeps it centered)
-      if (!wrap.contains(canvas)) wrap.appendChild(canvas);
 
       // enable buttons
       downloadBtn.disabled = false;
       openBtn.disabled = false;
-    });
 
-    downloadBtn.addEventListener('click', () => {
-      // export canvas as PNG
+      // small delay to ensure canvas updated (usually immediate)
+      await new Promise(r => setTimeout(r, 10));
+    }
+
+    // Download PNG at 1000x1000
+    function downloadPNG() {
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = 'qrcode.png';
+      a.download = 'qrcode-1000.png';
       document.body.appendChild(a);
       a.click();
       a.remove();
-    });
+    }
 
-    openBtn.addEventListener('click', () => {
-      // open PNG in new tab so user can right-click/save
+    // Open image in new tab
+    function openImage() {
       const dataUrl = canvas.toDataURL('image/png');
-      window.open(dataUrl, '_blank');
-    });
+      const w = window.open('', '_blank');
+      if (!w) return alert('Pop-up blocked. Izinkan pop-up untuk membuka gambar.');
+      w.document.write('<title>QR Image</title>');
+      w.document.write('<img src="'+dataUrl+'" width="1000" height="1000" alt="QR code"/>');
+    }
 
-    clearBtn.addEventListener('click', () => {
+    // Clear
+    function clearAll() {
       urlInput.value = '';
       qr.set({ value: '' });
       canvas.style.display = 'none';
       downloadBtn.disabled = true;
       openBtn.disabled = true;
       urlInput.focus();
+    }
+
+    // Events
+    document.getElementById('generate').addEventListener('click', (e) => {
+      e.preventDefault();
+      generate();
     });
 
-    // allow pressing Enter in the URL field to submit
+    downloadBtn.addEventListener('click', downloadPNG);
+    openBtn.addEventListener('click', openImage);
+    clearBtn.addEventListener('click', clearAll);
+
+    // allow Enter in input
     urlInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        form.requestSubmit();
+        e.preventDefault();
+        generate();
       }
     });
+
+    // accessibility: focus input on load
+    window.addEventListener('load', () => urlInput.focus());
   </script>
 </body>
 </html>
